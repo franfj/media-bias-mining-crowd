@@ -42,8 +42,8 @@ Thumbs.db
 *.swo
 *~
 
-# Compiled PDF (keep LaTeX source, not compiled output)
-drafts/v*/plantilla.pdf
+# Paper drafts (not tracked in git)
+drafts/
 
 # Jupyter
 .ipynb_checkpoints/
