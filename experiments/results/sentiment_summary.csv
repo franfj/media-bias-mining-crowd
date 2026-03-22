@@ -1,0 +1,10 @@
+metric,value
+polarity_biased,-0.4515438186581014
+polarity_non_biased,-0.42010638153848706
+polarity_p_value,1.0306523608541429e-05
+pct_neg_biased,0.5973
+pct_neg_non_biased,0.5625
+anger_biased,0.2709137769086126
+anger_non_biased,0.24789453234873
+joy_biased,0.0487996395459093
+joy_non_biased,0.04988134910062072
