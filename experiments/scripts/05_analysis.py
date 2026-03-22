@@ -32,7 +32,7 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
@@ -311,18 +311,23 @@ def run_predictive_modeling(df: pd.DataFrame, output_dir: Path):
 
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
+        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1),
         "Gradient Boosting": GradientBoostingClassifier(n_estimators=100, random_state=42),
     }
+
+    # Single CV loop per model: compute all metrics in one pass to avoid
+    # redundant model fits and the memory overhead of repeated n_jobs forking.
+    scoring = ["accuracy", "f1_macro", "roc_auc"]
 
     results = []
     for name, model in models.items():
         logger.info("Training %s...", name)
 
-        # Cross-validation
-        acc_scores = cross_val_score(model, X_scaled, y, cv=cv, scoring="accuracy")
-        f1_scores = cross_val_score(model, X_scaled, y, cv=cv, scoring="f1_macro")
-        auc_scores = cross_val_score(model, X_scaled, y, cv=cv, scoring="roc_auc")
+        cv_results = cross_validate(model, X_scaled, y, cv=cv, scoring=scoring, n_jobs=1)
+
+        acc_scores = cv_results["test_accuracy"]
+        f1_scores = cv_results["test_f1_macro"]
+        auc_scores = cv_results["test_roc_auc"]
 
         results.append({
             "model": name,
@@ -340,7 +345,7 @@ def run_predictive_modeling(df: pd.DataFrame, output_dir: Path):
         print(f"  ROC AUC:   {auc_scores.mean():.4f} (+/- {auc_scores.std():.4f})")
 
     # Feature importance from final Random Forest
-    rf = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1)
+    rf = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=1)
     rf.fit(X_scaled, y)
     importances = rf.feature_importances_
     importance_df = pd.DataFrame({
@@ -386,10 +391,17 @@ def main():
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Load data
+    # Load data — only columns actually used by analyses to save memory
     data_path = args.data_dir / "articles_with_features.parquet"
     logger.info("Loading data from %s...", data_path)
-    df = pd.read_parquet(data_path)
+    needed_cols = set(
+        INTERACTION_FEATURES
+        + ["article_id", "bias_label", "bias_prob", "media", "tags", "year"]
+    )
+    import pyarrow.parquet as pq
+    all_cols = [f.name for f in pq.read_schema(data_path)]
+    load_cols = [c for c in all_cols if c in needed_cols]
+    df = pd.read_parquet(data_path, columns=load_cols)
     logger.info("Loaded %d articles with %d columns", len(df), len(df.columns))
 
     # Run all analyses

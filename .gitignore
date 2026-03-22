@@ -63,3 +63,6 @@ drafts/v*/plantilla.pdf
 *.nav
 *.snm
 *.vrb
+experiments/results/outlet_jaccard_similarity.csv
+experiments/data/*.parquet
+experiments/models/
