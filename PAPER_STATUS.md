@@ -1,6 +1,6 @@
 # Paper Status — Perceived Media Bias in User Interactions
 
-## Status: IN PROGRESS (Phase 2-4: Data Processing + Experiments)
+## Status: IN PROGRESS (Phase 5: Analysis + Experiments)
 
 | Field | Value |
 |-------|-------|
@@ -63,9 +63,9 @@ Investigate whether user interaction patterns on Meneame (Spain's largest social
 
 - [x] Phase 0: Idea validation and project setup
 - [x] Phase 1: Literature review (in user-interactions-bias project)
-- [>] Phase 2: Dataset processing and subsampling
-- [>] Phase 3: Automatic bias labeling (supervised + zero-shot)
-- [>] Phase 4: Interaction feature extraction
+- [x] Phase 2: Dataset processing and subsampling (186K → 168K filtered → 15K subsample)
+- [x] Phase 3: Automatic bias labeling (franfj/fdtd_media_bias_E: 61.5% biased, 38.5% non-biased)
+- [x] Phase 4: Interaction feature extraction (38 columns, 17 interaction features)
 - [ ] Phase 5: Analysis and experiments
 - [ ] Phase 6: Paper writing (full draft)
 - [ ] Phase 7: GitHub repo + Zenodo dataset upload
@@ -77,18 +77,37 @@ Investigate whether user interaction patterns on Meneame (Spain's largest social
 
 | Step | Script | Status |
 |------|--------|--------|
-| 1. Ingest JSON files to Parquet | `experiments/scripts/01_ingest_dataset.py` | In progress |
-| 2. Filter and subsample | `experiments/scripts/02_filter_subsample.py` | In progress |
-| 3. Bias labeling (supervised) | `experiments/scripts/03_bias_labeling.py` | In progress |
-| 4. Interaction features | `experiments/scripts/04_interaction_features.py` | In progress |
+| 1. Ingest JSON files to Parquet | `experiments/scripts/01_ingest_dataset.py` | Done (186,317 articles, 13.2M comments) |
+| 2. Filter and subsample | `experiments/scripts/02_filter_subsample.py` | Done (168,688 filtered → 14,995 subsample) |
+| 3. Bias labeling (supervised) | `experiments/scripts/03_bias_labeling.py` | Done (9,225 biased / 5,770 non-biased) |
+| 4. Interaction features | `experiments/scripts/04_interaction_features.py` | Done (38 columns incl. 17 interaction features) |
+| Pipeline runner | `experiments/scripts/run_pipeline.sh` | Done (supports --from N, --only N) |
 | 5. Analysis | `experiments/scripts/05_analysis.py` | Not started |
+
+---
+
+## Data Summary
+
+| Dataset | Rows | Columns | Size |
+|---------|------|---------|------|
+| `articles_raw.parquet` | 186,317 | 15 | 89.4 MB |
+| `comments_raw.parquet` | 13,252,609 | 7 | 2,114.6 MB |
+| `articles_filtered.parquet` | 168,688 | 15 | 83.9 MB |
+| `articles_subsample.parquet` | 14,995 | 15 | 7.8 MB |
+| `articles_labeled.parquet` | 14,995 | 17 | 7.9 MB |
+| `articles_with_features.parquet` | 14,995 | 38 | 8.7 MB |
+
+### Bias Label Distribution (subsample)
+- Biased (1): 9,225 (61.5%)
+- Non-biased (0): 5,770 (38.5%)
+- Mean bias probability: 0.616
 
 ---
 
 ## Next Actions
 
-1. Complete dataset ingestion and subsampling pipeline
-2. Run supervised bias labeling with franfj/fdtd_media_bias_E
-3. Extract interaction features for all articles
-4. Run correlation analysis
-5. Write dataset and methods sections
+1. Run correlation analysis (bias labels vs interaction features)
+2. Train interaction-only, content-only, and combined models
+3. Perform temporal and outlet-level analysis
+4. Write dataset and methods sections
+5. Write results and discussion

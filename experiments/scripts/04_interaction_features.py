@@ -6,7 +6,6 @@ Computes:
 - Comment count, avg comment karma, comment karma variance
 - Positive/negative comment karma ratio
 - Post score (votes)
-- Time to first comment (seconds)
 - Comment activity duration (last comment - first comment)
 - Comment karma std (polarization signal)
 - Average comment length
@@ -25,8 +24,7 @@ import argparse
 import logging
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import polars as pl
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,119 +36,117 @@ logger = logging.getLogger("features")
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
-def compute_comment_features(comments_df: pd.DataFrame, article_ids: set) -> pd.DataFrame:
+def compute_comment_features(comments_df: pl.DataFrame, article_ids: list[str]) -> pl.DataFrame:
     """
     Compute comment-based interaction features grouped by article_id.
 
     Args:
         comments_df: Raw comments DataFrame
-        article_ids: Set of article IDs to filter to
+        article_ids: List of article IDs to filter to
 
     Returns:
         DataFrame with one row per article_id and computed features
     """
     # Filter to only our subsampled articles
     logger.info("Filtering comments to %d articles...", len(article_ids))
-    comments = comments_df[comments_df["article_id"].isin(article_ids)].copy()
-    logger.info("Filtered to %d comments", len(comments))
+    comments = comments_df.filter(pl.col("article_id").is_in(article_ids))
+    logger.info("Filtered to %d comments", comments.height)
 
-    # Group by article
+    # Compute all features using polars group_by aggregations
     logger.info("Computing features per article...")
 
-    features = []
+    features = comments.group_by("article_id").agg([
+        # Comment volume
+        pl.len().alias("comment_count"),
 
-    grouped = comments.groupby("article_id")
-    total_groups = len(grouped)
+        # Karma statistics
+        pl.col("comment_karma").mean().alias("avg_comment_karma"),
+        pl.col("comment_karma").median().alias("median_comment_karma"),
+        pl.col("comment_karma").std().alias("std_comment_karma"),
+        pl.col("comment_karma").min().alias("min_comment_karma"),
+        pl.col("comment_karma").max().alias("max_comment_karma"),
+        pl.col("comment_karma").sum().alias("total_comment_karma"),
 
-    for i, (article_id, group) in enumerate(grouped):
-        if (i + 1) % 2000 == 0:
-            logger.info("Processing article %d/%d...", i + 1, total_groups)
+        # Karma polarization
+        (pl.col("comment_karma") < 0).mean().alias("pct_negative_karma"),
+        (pl.col("comment_karma") > 0).mean().alias("pct_positive_karma"),
+        (pl.col("comment_karma") == 0).mean().alias("pct_zero_karma"),
 
-        karma_values = group["comment_karma"].values
-        timestamps = group["comment_ts"].dropna()
-        text_lengths = group["comment_text_length"].values
-        authors = group["comment_author"]
+        # Karma range (spread = polarization indicator)
+        (pl.col("comment_karma").max() - pl.col("comment_karma").min()).alias("karma_range"),
+        # IQR approximation
+        (
+            pl.col("comment_karma").quantile(0.75) - pl.col("comment_karma").quantile(0.25)
+        ).alias("karma_iqr"),
 
-        feat = {
-            "article_id": article_id,
-            # Comment volume
-            "comment_count": len(group),
-            # Karma statistics
-            "avg_comment_karma": float(np.mean(karma_values)) if len(karma_values) > 0 else 0.0,
-            "median_comment_karma": float(np.median(karma_values)) if len(karma_values) > 0 else 0.0,
-            "std_comment_karma": float(np.std(karma_values, ddof=1)) if len(karma_values) > 1 else 0.0,
-            "min_comment_karma": float(np.min(karma_values)) if len(karma_values) > 0 else 0.0,
-            "max_comment_karma": float(np.max(karma_values)) if len(karma_values) > 0 else 0.0,
-            "total_comment_karma": float(np.sum(karma_values)),
-            # Karma polarization: ratio of negative karma comments
-            "pct_negative_karma": float(np.mean(karma_values < 0)) if len(karma_values) > 0 else 0.0,
-            "pct_positive_karma": float(np.mean(karma_values > 0)) if len(karma_values) > 0 else 0.0,
-            "pct_zero_karma": float(np.mean(karma_values == 0)) if len(karma_values) > 0 else 0.0,
-            # Karma range (spread = polarization indicator)
-            "karma_range": float(np.max(karma_values) - np.min(karma_values)) if len(karma_values) > 0 else 0.0,
-            "karma_iqr": float(np.percentile(karma_values, 75) - np.percentile(karma_values, 25)) if len(karma_values) >= 4 else 0.0,
-            # Comment text features
-            "avg_comment_length": float(np.mean(text_lengths)) if len(text_lengths) > 0 else 0.0,
-            "total_comment_text_length": float(np.sum(text_lengths)),
-            # User engagement
-            "unique_commenters": int(authors.nunique()),
-            "comments_per_commenter": float(len(group) / max(authors.nunique(), 1)),
-        }
+        # Comment text features
+        pl.col("comment_text_length").mean().alias("avg_comment_length"),
+        pl.col("comment_text_length").sum().alias("total_comment_text_length"),
 
-        # Temporal features (if timestamps available)
-        if len(timestamps) >= 2:
-            ts_sorted = timestamps.sort_values()
-            first_comment = ts_sorted.iloc[0]
-            last_comment = ts_sorted.iloc[-1]
+        # User engagement
+        pl.col("comment_author").n_unique().alias("unique_commenters"),
 
-            # Activity duration in hours
-            duration = (last_comment - first_comment).total_seconds() / 3600.0
-            feat["comment_activity_duration_hours"] = duration
-        else:
-            feat["comment_activity_duration_hours"] = 0.0
+        # Temporal features: activity duration in hours
+        (
+            (pl.col("comment_ts").max() - pl.col("comment_ts").min())
+            .dt.total_seconds()
+            / 3600.0
+        ).alias("comment_activity_duration_hours"),
+    ])
 
-        features.append(feat)
+    # Compute comments_per_commenter
+    features = features.with_columns(
+        (pl.col("comment_count").cast(pl.Float64) / pl.col("unique_commenters").cast(pl.Float64))
+        .alias("comments_per_commenter")
+    )
 
-    return pd.DataFrame(features)
+    # Fill nulls with 0
+    features = features.fill_null(0)
+
+    return features
 
 
-def compute_article_features(articles_df: pd.DataFrame) -> pd.DataFrame:
+def compute_article_features(articles_df: pl.DataFrame) -> pl.DataFrame:
     """
     Compute article-level features from the article metadata.
     """
-    df = articles_df.copy()
+    df = articles_df
 
-    # Post score features (already in data)
     # Compute time-of-day and day-of-week from timestamp
     if "timestamp" in df.columns:
-        df["hour_of_day"] = pd.to_datetime(df["timestamp"]).dt.hour
-        df["day_of_week"] = pd.to_datetime(df["timestamp"]).dt.dayofweek
-        df["is_weekend"] = df["day_of_week"].isin([5, 6]).astype(int)
+        df = df.with_columns([
+            pl.col("timestamp").dt.hour().alias("hour_of_day"),
+            pl.col("timestamp").dt.weekday().alias("day_of_week"),
+            pl.col("timestamp").dt.weekday().is_in([6, 7]).cast(pl.Int32).alias("is_weekend"),
+        ])
 
     # Tag count
-    df["tag_count"] = df["tags"].fillna("").str.count(r"\|") + 1
-    df.loc[df["tags"].fillna("") == "", "tag_count"] = 0
+    df = df.with_columns(
+        pl.when(pl.col("tags").is_null() | (pl.col("tags") == ""))
+        .then(pl.lit(0))
+        .otherwise(pl.col("tags").str.count_matches(r"\|") + 1)
+        .alias("tag_count")
+    )
 
     return df
 
 
 def merge_features(
-    articles_df: pd.DataFrame,
-    comment_features_df: pd.DataFrame,
-) -> pd.DataFrame:
+    articles_df: pl.DataFrame,
+    comment_features_df: pl.DataFrame,
+) -> pl.DataFrame:
     """Merge article-level and comment-level features."""
-    merged = articles_df.merge(
+    merged = articles_df.join(
         comment_features_df,
         on="article_id",
         how="left",
-        suffixes=("", "_computed"),
     )
 
     # Fill NaN for articles with no comments in the comments file
     fill_cols = [c for c in comment_features_df.columns if c != "article_id"]
-    for col in fill_cols:
-        if col in merged.columns:
-            merged[col] = merged[col].fillna(0)
+    merged = merged.with_columns([
+        pl.col(col).fill_null(0) for col in fill_cols if col in merged.columns
+    ])
 
     return merged
 
@@ -163,23 +159,23 @@ def main():
     # Load labeled articles
     articles_path = args.data_dir / "articles_labeled.parquet"
     logger.info("Loading labeled articles from %s...", articles_path)
-    articles_df = pd.read_parquet(articles_path)
-    logger.info("Loaded %d articles", len(articles_df))
+    articles_df = pl.read_parquet(articles_path)
+    logger.info("Loaded %d articles", articles_df.height)
 
     # Load raw comments
     comments_path = args.data_dir / "comments_raw.parquet"
     logger.info("Loading comments from %s...", comments_path)
-    comments_df = pd.read_parquet(comments_path)
-    logger.info("Loaded %d comments", len(comments_df))
+    comments_df = pl.read_parquet(comments_path)
+    logger.info("Loaded %d comments", comments_df.height)
 
     # Compute article-level features
     logger.info("Computing article-level features...")
     articles_enhanced = compute_article_features(articles_df)
 
     # Compute comment-level features
-    article_ids = set(articles_df["article_id"].values)
+    article_ids = articles_df["article_id"].to_list()
     comment_features = compute_comment_features(comments_df, article_ids)
-    logger.info("Computed comment features for %d articles", len(comment_features))
+    logger.info("Computed comment features for %d articles", comment_features.height)
 
     # Merge
     logger.info("Merging features...")
@@ -187,19 +183,21 @@ def main():
 
     # Save
     output_path = args.data_dir / "articles_with_features.parquet"
-    final_df.to_parquet(output_path, index=False)
-    logger.info("Saved features dataset: %s (%d articles, %d columns)",
-                output_path, len(final_df), len(final_df.columns))
+    final_df.write_parquet(output_path)
+    logger.info(
+        "Saved features dataset: %s (%d articles, %d columns)",
+        output_path, final_df.height, final_df.width,
+    )
 
     # Summary
     print("\n--- Feature Summary ---")
-    print(f"Total articles: {len(final_df)}")
-    print(f"Total columns: {len(final_df.columns)}")
+    print(f"Total articles: {final_df.height}")
+    print(f"Total columns: {final_df.width}")
     print(f"\nColumn list:")
-    for col in final_df.columns:
-        dtype = final_df[col].dtype
-        non_null = final_df[col].notna().sum()
-        print(f"  {col:40s} {str(dtype):12s} non-null: {non_null}")
+    for col_name in final_df.columns:
+        dtype = final_df[col_name].dtype
+        non_null = final_df[col_name].drop_nulls().len()
+        print(f"  {col_name:40s} {str(dtype):12s} non-null: {non_null}")
 
     print(f"\n--- Key Feature Statistics ---")
     numeric_cols = [
@@ -210,18 +208,28 @@ def main():
         "bias_prob",
     ]
     existing_cols = [c for c in numeric_cols if c in final_df.columns]
-    print(final_df[existing_cols].describe().to_string())
+    stats = final_df.select(existing_cols).describe()
+    print(stats)
 
     # Bias vs interaction correlation preview
     print(f"\n--- Bias Label vs Interaction Features ---")
-    for col in ["score", "num_comments", "avg_comment_karma", "std_comment_karma",
-                 "karma_range", "pct_negative_karma", "unique_commenters",
-                 "comment_activity_duration_hours"]:
-        if col in final_df.columns:
-            biased_mean = final_df[final_df["bias_label"] == 1][col].mean()
-            non_biased_mean = final_df[final_df["bias_label"] == 0][col].mean()
-            diff_pct = ((biased_mean - non_biased_mean) / max(abs(non_biased_mean), 0.001)) * 100
-            print(f"  {col:40s} non-biased={non_biased_mean:10.2f}  biased={biased_mean:10.2f}  diff={diff_pct:+.1f}%")
+    interaction_cols = [
+        "score", "num_comments", "avg_comment_karma", "std_comment_karma",
+        "karma_range", "pct_negative_karma", "unique_commenters",
+        "comment_activity_duration_hours",
+    ]
+    for col in interaction_cols:
+        if col not in final_df.columns:
+            continue
+        biased_mean = final_df.filter(pl.col("bias_label") == 1)[col].mean()
+        non_biased_mean = final_df.filter(pl.col("bias_label") == 0)[col].mean()
+        if non_biased_mean is not None and biased_mean is not None:
+            denom = max(abs(non_biased_mean), 0.001)
+            diff_pct = ((biased_mean - non_biased_mean) / denom) * 100
+            print(
+                f"  {col:40s} non-biased={non_biased_mean:10.2f}  "
+                f"biased={biased_mean:10.2f}  diff={diff_pct:+.1f}%"
+            )
 
 
 if __name__ == "__main__":

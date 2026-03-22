@@ -22,8 +22,7 @@ import argparse
 import logging
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import polars as pl
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -85,32 +84,32 @@ def predict_batch(
 
 
 def label_articles(
-    df: pd.DataFrame,
+    df: pl.DataFrame,
     tokenizer,
     model,
     device: str = "cpu",
     batch_size: int = 32,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     """
     Add bias labels and probabilities to the article DataFrame.
 
     Uses title + first 400 chars of text as input.
     """
-    df = df.copy()
-
     # Prepare input texts: title + text
+    titles = df["title"].to_list()
+    texts_col = df["text"].to_list()
+
     texts = []
-    for _, row in df.iterrows():
-        title = str(row.get("title", ""))
-        text = str(row.get("text", ""))
-        # Combine title and text, truncating text if needed
+    for title, text in zip(titles, texts_col):
+        title = str(title) if title is not None else ""
+        text = str(text) if text is not None else ""
         combined = f"{title}. {text[:400]}" if text else title
         texts.append(combined)
 
     logger.info("Labeling %d articles in batches of %d...", len(texts), batch_size)
 
-    all_labels = []
-    all_probs = []
+    all_labels: list[int] = []
+    all_probs: list[float] = []
 
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i : i + batch_size]
@@ -126,8 +125,10 @@ def label_articles(
                 min(i + batch_size, len(texts)) / len(texts) * 100,
             )
 
-    df["bias_label"] = all_labels
-    df["bias_prob"] = all_probs
+    df = df.with_columns([
+        pl.Series("bias_label", all_labels, dtype=pl.Int32),
+        pl.Series("bias_prob", all_probs, dtype=pl.Float64),
+    ])
 
     return df
 
@@ -151,8 +152,8 @@ def main():
     # Load data
     input_path = args.data_dir / args.input_file
     logger.info("Loading articles from %s...", input_path)
-    df = pd.read_parquet(input_path)
-    logger.info("Loaded %d articles", len(df))
+    df = pl.read_parquet(input_path)
+    logger.info("Loaded %d articles", df.height)
 
     # Load model
     tokenizer, model = load_model(device)
@@ -162,41 +163,56 @@ def main():
 
     # Save
     output_path = args.data_dir / args.output_file
-    labeled_df.to_parquet(output_path, index=False)
+    labeled_df.write_parquet(output_path)
     logger.info("Saved labeled dataset: %s", output_path)
 
     # Summary
+    biased = labeled_df.filter(pl.col("bias_label") == 1).height
+    non_biased = labeled_df.height - biased
+
     print("\n--- Bias Labeling Summary ---")
-    print(f"Total articles: {len(labeled_df)}")
-    biased = labeled_df["bias_label"].sum()
-    non_biased = len(labeled_df) - biased
-    print(f"Non-biased (0): {non_biased} ({non_biased/len(labeled_df)*100:.1f}%)")
-    print(f"Biased (1):     {biased} ({biased/len(labeled_df)*100:.1f}%)")
+    print(f"Total articles: {labeled_df.height}")
+    print(f"Non-biased (0): {non_biased} ({non_biased / labeled_df.height * 100:.1f}%)")
+    print(f"Biased (1):     {biased} ({biased / labeled_df.height * 100:.1f}%)")
     print(f"\nBias probability distribution:")
-    print(f"  Mean:   {labeled_df['bias_prob'].mean():.4f}")
-    print(f"  Median: {labeled_df['bias_prob'].median():.4f}")
-    print(f"  Std:    {labeled_df['bias_prob'].std():.4f}")
-    print(f"  Min:    {labeled_df['bias_prob'].min():.4f}")
-    print(f"  Max:    {labeled_df['bias_prob'].max():.4f}")
+    bp = labeled_df["bias_prob"]
+    print(f"  Mean:   {bp.mean():.4f}")
+    print(f"  Median: {bp.median():.4f}")
+    print(f"  Std:    {bp.std():.4f}")
+    print(f"  Min:    {bp.min():.4f}")
+    print(f"  Max:    {bp.max():.4f}")
 
     # Bias by outlet
     print(f"\nBias rate by top outlets:")
-    top_outlets = labeled_df["media"].value_counts().head(15).index
-    outlet_bias = labeled_df[labeled_df["media"].isin(top_outlets)].groupby("media").agg(
-        count=("bias_label", "size"),
-        bias_rate=("bias_label", "mean"),
-        avg_bias_prob=("bias_prob", "mean"),
-    ).sort_values("bias_rate", ascending=False)
-    print(outlet_bias.to_string())
+    top_outlets = (
+        labeled_df.group_by("media").len().sort("len", descending=True).head(15)["media"].to_list()
+    )
+    outlet_bias = (
+        labeled_df.filter(pl.col("media").is_in(top_outlets))
+        .group_by("media")
+        .agg([
+            pl.len().alias("count"),
+            pl.col("bias_label").mean().alias("bias_rate"),
+            pl.col("bias_prob").mean().alias("avg_bias_prob"),
+        ])
+        .sort("bias_rate", descending=True)
+    )
+    for row in outlet_bias.iter_rows():
+        print(f"  {row[0]:40s} count={row[1]:5d}  bias_rate={row[2]:.3f}  avg_prob={row[3]:.3f}")
 
     # Bias by year
     print(f"\nBias rate by year:")
-    year_bias = labeled_df.groupby("year").agg(
-        count=("bias_label", "size"),
-        bias_rate=("bias_label", "mean"),
-        avg_bias_prob=("bias_prob", "mean"),
-    ).sort_index()
-    print(year_bias.to_string())
+    year_bias = (
+        labeled_df.group_by("year")
+        .agg([
+            pl.len().alias("count"),
+            pl.col("bias_label").mean().alias("bias_rate"),
+            pl.col("bias_prob").mean().alias("avg_bias_prob"),
+        ])
+        .sort("year")
+    )
+    for row in year_bias.iter_rows():
+        print(f"  {row[0]}  count={row[1]:5d}  bias_rate={row[2]:.3f}  avg_prob={row[3]:.3f}")
 
 
 if __name__ == "__main__":
