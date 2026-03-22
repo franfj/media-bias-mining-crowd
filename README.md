@@ -1,6 +1,6 @@
 # Perceived Media Bias in User Interactions: Mining the Crowd for Disinformation Signals
 
-This repository contains the experiment pipeline and paper draft for our study on the relationship between media bias and user engagement patterns on [Meneame](https://www.meneame.net/), Spain's largest social news aggregator.
+This repository contains the experiment pipeline for our study on the relationship between media bias and user engagement patterns on [Meneame](https://www.meneame.net/), Spain's largest social news aggregator.
 
 ## Overview
 
@@ -26,8 +26,6 @@ We investigate whether user interaction patterns (votes, comments, karma, contro
 │   │   └── 05_analysis.py            # Statistical analysis and modeling
 │   ├── data/                # Intermediate data (gitignored, see below)
 │   └── results/             # Analysis output (CSV summaries)
-├── drafts/
-│   └── v1/                  # Paper draft (IJIMAI format)
 ├── literature/              # Literature review notes
 ├── notes/                   # Research notes
 └── PAPER_STATUS.md          # Current project status
@@ -81,10 +79,6 @@ The Meneame dataset consists of scraped news submissions from meneame.net (appro
 - User comments (text, author, karma, timestamp)
 
 To reproduce the experiments, place the raw JSON files in a directory and point `01_ingest_dataset.py` to it.
-
-## Target Venue
-
-**IJIMAI** (International Journal of Interactive Multimedia and Artificial Intelligence)
 
 ## Authors
 

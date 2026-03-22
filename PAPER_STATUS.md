@@ -7,9 +7,7 @@
 | **Working title** | Perceived Media Bias in User Interactions: Mining the Crowd for Disinformation Signals |
 | **Authors** | Francisco-Javier Rodrigo-Gines (UNED), Jorge Chamorro-Padial (U. Lleida), Jorge Carrillo-de-Albornoz (UNED), Laura Plaza (UNED) |
 | **Affiliation** | UNED — NLP & IR Group; Universitat de Lleida |
-| **Primary venue** | IJIMAI (International Journal of Interactive Multimedia and Artificial Intelligence) |
 | **Paper type** | Full paper (data + experiments) |
-| **Estimated length** | 12-15 pages (journal) |
 | **Language** | English |
 | **GitHub repo** | https://github.com/franfj/media-bias-mining-crowd |
 | **Dataset source** | Meneame scraped dataset (186,318 JSON files, ~2008-2022) |
