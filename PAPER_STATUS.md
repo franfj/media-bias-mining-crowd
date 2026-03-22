@@ -64,9 +64,9 @@ Investigate whether user interaction patterns on Meneame (Spain's largest social
 - [x] Phase 2: Dataset processing and subsampling (186K → 168K filtered → 15K subsample)
 - [x] Phase 3: Automatic bias labeling (franfj/fdtd_media_bias_E: 61.5% biased, 38.5% non-biased)
 - [x] Phase 4: Interaction feature extraction (38 columns, 17 interaction features)
-- [ ] Phase 5: Analysis and experiments
+- [x] Phase 5: Analysis and experiments (6 experiment scripts completed)
 - [ ] Phase 6: Paper writing (full draft)
-- [ ] Phase 7: GitHub repo + Zenodo dataset upload
+- [x] Phase 7: GitHub repo + Zenodo dataset upload (deposit 19164549, draft v0.1.0)
 - [ ] Phase 8: Review and submission
 
 ---
@@ -80,7 +80,13 @@ Investigate whether user interaction patterns on Meneame (Spain's largest social
 | 3. Bias labeling (supervised) | `experiments/scripts/03_bias_labeling.py` | Done (9,225 biased / 5,770 non-biased) |
 | 4. Interaction features | `experiments/scripts/04_interaction_features.py` | Done (38 columns incl. 17 interaction features) |
 | Pipeline runner | `experiments/scripts/run_pipeline.sh` | Done (supports --from N, --only N) |
-| 5. Analysis | `experiments/scripts/05_analysis.py` | Not started |
+| 5. Statistical analysis | `experiments/scripts/05_analysis.py` | Done (correlations, prediction, outlet/topic/temporal) |
+| 6. Karma divergence | `experiments/scripts/06_karma_divergence.py` | Done (entropy, gini, bimodality, KL per outlet) |
+| 7. User-media graph | `experiments/scripts/07_user_media_graph.py` | Done (Louvain communities, Jaccard, user polarisation) |
+| 8. Comment sentiment | `experiments/scripts/08_comment_sentiment.py` | Done (20K sample, pysentimiento/robertuito) |
+| 9. Temporal dynamics | `experiments/scripts/09_temporal_sentiment.py` | Done (intra-article, yearly trends, sentiment) |
+| 10. Bias model training | `experiments/scripts/10_train_bias_model.py` | Done (DistilBERT multi, F1=0.79 on BEADS val) |
+| Zenodo upload | `experiments/scripts/upload_zenodo.py` | Done (deposit 19164549, draft v0.1.0) |
 
 ---
 
@@ -102,10 +108,49 @@ Investigate whether user interaction patterns on Meneame (Spain's largest social
 
 ---
 
+## Key Findings (Phase 5)
+
+### Statistical Analysis (script 05)
+- Gradient Boosting best predictor: AUC 0.642, F1 0.567 (baseline 0.615)
+- `text_length` most predictive feature (Spearman ρ=0.20)
+- Most biased topics: entrevista, curiosidades, ETA, iglesia
+- Least biased: Microsoft, software libre, UE, Linux
+
+### Karma Divergence (script 06)
+- Biased articles have higher karma entropy (+4.6%, p<1e-24)
+- Higher IQR (+10.5%) and extreme karma fraction (+2.0%)
+- Outlets with highest KL divergence: danielmarin, escolar.net, labrujulaverde
+
+### User-Media Graph (script 07)
+- 2 media outlet communities (Louvain): traditional vs digital/alternative
+- Most similar pair: elConfidencial ↔ elDiario (Jaccard 0.40)
+- 45% of users have high bias exposure; mixed users read 3× more outlets
+
+### Comment Sentiment (script 08)
+- More negativity in biased articles: 59.7% NEG vs 56.2% (p<1e-5)
+- More anger: 0.271 vs 0.248 (p<4e-5)
+- Pattern consistent across 2006-2021
+
+### Temporal Dynamics (script 09)
+- Biased articles trigger 10.7% faster initial reactions
+- Stronger karma drift (-8.4 vs -7.7, p<1e-12)
+- Late comments 4.5% shorter; article life 20.6% shorter
+
+### Bias Model (script 10)
+- DistilBERT multilingual on BEADS+MBBMD: F1=0.79 on validation
+- Cross-lingual transfer ES: 0% biased recall on MBBMD test (only 2 samples)
+- Need more Spanish training data or translation augmentation
+
+## Zenodo Dataset
+
+- **Deposit ID**: 19164549
+- **Status**: Draft (v0.1.0)
+- **Files**: articles_with_features, articles_labeled, karma_features, comments_with_sentiment, user_profiles, user_outlet_interactions
+
 ## Next Actions
 
-1. Run correlation analysis (bias labels vs interaction features)
-2. Train interaction-only, content-only, and combined models
-3. Perform temporal and outlet-level analysis
-4. Write dataset and methods sections
-5. Write results and discussion
+1. Improve bias model: add MBIC, try data augmentation / translation for Spanish
+2. Re-label Meneame articles with improved model
+3. Update Zenodo deposit with new labels
+4. Write paper sections: Dataset, Methods, Results, Discussion
+5. Publish Zenodo deposit with DOI
