@@ -1,0 +1,66 @@
+\documentclass[]{ijimai_article}
+
+\title{Perceived Media Bias in User Interactions: Mining the Crowd for Disinformation Signals}
+
+\author{Francisco-Javier Rodrigo-Gin\'es\textsuperscript{1} \and Jorge Chamorro-Padial\textsuperscript{2} \and Jorge Carrillo-de-Albornoz\textsuperscript{1} \and Laura Plaza\textsuperscript{1}}
+\affiliation{\textsuperscript{1}NLP \& IR Group, UNED, Calle Juan del Rosal, 16, Madrid, 28040, Spain\newline
+\textsuperscript{2}Computer Science and Engineering Department, Universitat de Lleida, Carrer Jaume II, 69, Lleida, 25001, Spain\newline 
+}
+
+\mailinfo{E-mail address: frodrigo@invi.uned.es (Francisco-Javier Rodrigo-Gin\'es).}
+
+\abstract{This study explores the link between media bias and user interactions in online news platforms. Using a large-scale dataset of news articles and user responses, we investigate whether biased content—detected via supervised and zero-shot language models—elicits distinct engagement patterns. We apply a multi-stage pipeline involving content selection, bias detection, and correlation analysis to evaluate if user comments, votes, or controversy metrics can serve as indirect indicators of perceived bias. Our findings show that certain types of bias are strongly correlated with user disagreement, polarized voting, or high comment volume, suggesting the feasibility of interaction-aware bias detection frameworks. This research bridges content-based bias detection with behavioral signals, offering novel insights for the development of interpretable and socially grounded AI systems in the domain of disinformation mitigation.}
+
+\keywords{Artificial Intelligence, Disinformation, Media Bias, Natural Language Processing}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\fancyFirstWord{Disinformation} and media bias have raised societal concerns regarding the role of news platforms in shaping public opinion. Traditional computational methods for media bias detection rely predominantly on textual features \cite{baly2020we, lim2020annotating}, leaving out behavioral signals that could complement or even anticipate the presence of biased content. At the same time, user engagement metrics such as comment polarity, voting distributions, and controversy indices offer a valuable, yet underexplored, lens into how audiences perceive bias in real time.
+
+This paper investigates whether user interaction patterns can be used to infer perceived media bias in news articles. We combine large-scale content analysis with engagement metadata, leveraging a hybrid approach based on supervised classifiers and zero-shot language models. By analyzing which user behaviors correlate with predicted or annotated bias, we provide insights into how public response may function as a proxy signal for disinformation.
+
+Our contributions include:
+\begin{itemize}
+    \item A large-scale dataset combining textual news content and associated user interactions.
+    \item A comparative evaluation of bias detection using supervised models and GPT-style zero-shot LLMs.
+    \item A correlation and predictive analysis exploring the extent to which engagement metrics indicate perceived bias.
+    \item A proposal for incorporating behavioral signals into media bias mitigation frameworks.
+\end{itemize}
+
+The remainder of the paper is structured as follows: Section 2 describes related work in media bias detection and user-based indicators. Section 3 introduces the dataset and preprocessing steps. Section 4 details the methods for bias detection and user interaction modeling. Section 5 presents experimental results and correlation analyses. Section 6 discusses the implications and limitations, and Section 7 concludes.
+
+\section{Related Work}
+To do.
+
+\section{Dataset}
+To do.
+
+\section{Methods}
+To do.
+
+\section{Results}
+To do.
+
+\section{Discussion}
+To do.
+
+\section{Conclusion}
+To do.
+
+\appenAcknow
+
+\section{Appendix}
+% Optional
+
+\section{Acknowledgment}
+We thank the reviewers and colleagues who contributed feedback to earlier versions of this manuscript.
+
+\bibliographystyle{ijimai}
+\bibliography{biblio}
+
+\authorbio{your_picture}{Francisco-Javier Rodrigo-Gin\'es}{Francisco-Javier Rodrigo-Gin\'es is a PhD candidate at UNED and AI researcher at T-Systems Iberia. His research focuses on NLP, media bias detection, and the intersection of computational linguistics and social signal processing.}
+
+\end{document}
