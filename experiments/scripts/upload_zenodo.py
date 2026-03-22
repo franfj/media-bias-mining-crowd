@@ -70,7 +70,7 @@ METADATA = {
             "</ul>"
         ),
         "creators": [
-            {"name": "Rodrigo-Ginés, Francisco-Javier", "affiliation": "UNED", "orcid": "0000-0002-5077-2990"},
+            {"name": "Rodrigo-Ginés, Francisco-Javier", "affiliation": "UNED"},
             {"name": "Chamorro-Padial, Jorge", "affiliation": "Universitat de Lleida"},
             {"name": "Carrillo-de-Albornoz, Jorge", "affiliation": "UNED"},
             {"name": "Plaza, Laura", "affiliation": "UNED"},
