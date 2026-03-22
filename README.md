@@ -89,7 +89,6 @@ To reproduce the experiments, place the raw JSON files in a directory and point 
 ## Authors
 
 - **Francisco-Javier Rodrigo-Gines** - UNED, NLP & IR Group (frodrigo@invi.uned.es)
-- **Jorge Chamorro-Padial** - Universitat de Lleida
 - **Jorge Carrillo-de-Albornoz** - UNED, NLP & IR Group
 - **Laura Plaza** - UNED, NLP & IR Group
 
