@@ -1,0 +1,22 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a large-scale study of the relationship between media bias and user interaction patterns on Men\'eame, a Spanish social news platform.
+Our analysis of 14,995 articles with 13.2 million comments demonstrates that biased articles elicit measurably different engagement: higher karma entropy, more negative and angry comments, faster initial reactions, and steeper discourse degradation.
+Community analysis reveals two structurally distinct media ecosystems among outlets, and user behavior analysis shows that moderate bias exposure correlates with the broadest information diets.
+
+While interaction features alone achieve modest predictive performance (AUC $0.642$), they capture complementary signals to content-based approaches.
+The consistency of these patterns across 16 years and multiple feature families suggests that crowd behavioral signals provide a robust, scalable layer for media bias monitoring.
+
+Future work will explore: (1) combining interaction and content features in hybrid models, (2) obtaining comment threading information to analyze discussion depth and argumentation quality, (3) improving cross-lingual bias labeling to reduce dependence on small annotated corpora, and (4) extending the analysis to other social news platforms to test the generalizability of our findings.
+
+\section*{Acknowledgments}
+
+[CITE NEEDED: funding acknowledgments]
+
+\section*{Ethical Considerations}
+
+All user data was pseudonymized using SHA-256 hashing.
+No attempt was made to deanonymize users.
+The dataset contains only publicly available information from Men\'eame.
+Bias labels are automatic and should not be interpreted as ground truth judgments about individual articles or outlets.

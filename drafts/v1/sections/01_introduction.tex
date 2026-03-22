@@ -1,0 +1,30 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Media bias, the systematic slanting of news coverage through framing, omission, or word choice, poses a significant threat to informed public discourse \cite{hamborg2019automated}.
+As online news consumption grows, automated methods for detecting biased reporting have become a priority in the NLP community \cite{rodrigo2024systematic}.
+Most existing approaches analyze article content directly, relying on lexical, syntactic, or semantic features to classify bias at the document or sentence level.
+While effective, these methods face two fundamental limitations: they require expensive annotation efforts, and they capture only the producer side of bias, ignoring how audiences perceive and react to biased content.
+
+Social news platforms, where users collectively curate, discuss, and evaluate news articles, offer a complementary perspective.
+On these platforms, user interactions (votes, comments, karma scores) encode collective judgments about content quality, credibility, and controversiality.
+If biased articles systematically elicit different interaction patterns than unbiased ones, these behavioral signals could serve as scalable proxies for perceived bias, reducing dependence on manual annotation.
+
+In this work, we investigate this hypothesis using Men\'eame (\texttt{meneame.net}), Spain's largest social news aggregator, analogous to Reddit or Digg but focused on the Spanish-language media ecosystem.
+Men\'eame provides a rich setting for this study: it aggregates content from thousands of outlets, supports community voting and threaded comments with karma scores, and has operated continuously since 2005, offering a longitudinal view of media consumption patterns.
+
+We make the following contributions:
+\begin{enumerate}
+    \item We construct and release a large-scale dataset of 14,995 news articles with automatic bias labels and 38 interaction features derived from 13.2 million comments by 96,034 users across 2,868 media outlets (2005--2021).
+    \item We conduct a comprehensive statistical analysis demonstrating that biased articles elicit significantly different user engagement patterns in karma distributions, comment sentiment, reaction speed, and thread dynamics.
+    \item We perform community analysis on the user-outlet bipartite graph, revealing two distinct media ecosystems with different bias exposure profiles.
+    \item We evaluate the predictive power of interaction-only features for bias detection, establishing baselines for interaction-aware bias classification.
+\end{enumerate}
+
+The remainder of the paper is organized as follows.
+Section~\ref{sec:related_work} reviews related work on media bias detection and user interaction analysis.
+Section~\ref{sec:dataset} describes the dataset construction pipeline.
+Section~\ref{sec:methods} details our analysis methodology.
+Section~\ref{sec:results} presents experimental results.
+Section~\ref{sec:discussion} discusses findings, limitations, and implications.
+Section~\ref{sec:conclusion} concludes with future directions.

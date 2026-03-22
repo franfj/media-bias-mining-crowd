@@ -1,0 +1,11 @@
+\begin{abstract}
+Media bias detection typically relies on content analysis or costly manual annotation.
+We investigate whether user interaction patterns on social news platforms can serve as complementary signals for perceived media bias.
+We construct a large-scale dataset from Men\'eame, Spain's largest social news aggregator, comprising 14,995 articles from 2,868 outlets (2005--2021) with 13.2 million comments from 96,034 users.
+Articles are automatically labeled for bias using a supervised classifier trained on the MBBMD corpus, and enriched with 38 interaction features spanning karma distributions, comment engagement, and temporal dynamics.
+Our analysis reveals that biased articles exhibit statistically significant differences in user engagement: higher karma entropy ($+4.6\%$, $p < 10^{-24}$), more negative comment sentiment ($59.7\%$ vs.\ $56.2\%$ negative, $p < 10^{-5}$), faster initial reactions ($-10.7\%$ time to 10th comment), and stronger karma degradation over time.
+Community detection on the user-outlet bipartite graph identifies two distinct media ecosystems with different bias profiles.
+Gradient Boosting achieves the best predictive performance (AUC $0.642$), with article text length and comment karma statistics as the most informative features.
+These findings suggest that crowd behavioral signals provide a viable, scalable complement to content-based bias detection, enabling interaction-aware approaches to media bias monitoring.
+The dataset and code are publicly available.\footnote{\url{https://doi.org/10.5281/zenodo.19164549}}
+\end{abstract}

@@ -1,0 +1,63 @@
+\section{Methods}
+\label{sec:methods}
+
+We organize our analysis around four complementary perspectives: statistical testing, sentiment analysis, network analysis, and predictive modeling.
+
+\subsection{Statistical Analysis}
+
+For each interaction feature, we compare the distributions between biased and non-biased articles using the Mann-Whitney U test (non-parametric, appropriate given non-normal distributions).
+Effect sizes are reported as Cohen's $d$ and rank-biserial correlation $r$.
+Correlations between bias probability and interaction features are computed using both Pearson (linear) and Spearman (monotonic) coefficients.
+
+We extend the basic comparison with advanced karma distribution features.
+For each article's comment karma sequence $\{k_1, \ldots, k_n\}$, we compute:
+\begin{itemize}
+    \item \textbf{Entropy}: $H = -\sum_i p_i \log_2 p_i$, where $p_i$ is the probability of binned karma value $i$. Higher entropy indicates more dispersed (controversial) karma distributions.
+    \item \textbf{Gini coefficient}: Measures inequality in absolute karma values. Higher Gini indicates that a few comments dominate the karma distribution.
+    \item \textbf{Bimodality coefficient}: $BC = (\gamma^2 + 1) / (\kappa + 3)$, where $\gamma$ is skewness and $\kappa$ is excess kurtosis. Values above $5/9$ suggest bimodal distributions.
+\end{itemize}
+
+\subsection{Sentiment and Emotion Analysis}
+
+We analyze a stratified sample of 20,000 comments using the \texttt{robertuito} models for Spanish \cite{perez2022robertuito}: a sentiment classifier (positive/neutral/negative) and an emotion classifier (joy, anger, sadness, fear).
+For each comment, we compute a polarity score as $\text{polarity} = P(\text{positive}) - P(\text{negative})$.
+Results are aggregated at the article level and compared between bias groups.
+
+\subsection{Network Analysis}
+
+We construct a bipartite graph $G = (U, O, E)$ where $U$ is the set of users, $O$ is the set of media outlets, and edges $e_{uo} \in E$ are weighted by the number of comments user $u$ posted on articles from outlet $o$.
+
+\paragraph{Outlet similarity.}
+We compute Jaccard similarity between outlets based on their commenter sets: $J(o_i, o_j) = |U_i \cap U_j| / |U_i \cup U_j|$.
+High similarity indicates shared audiences.
+
+\paragraph{Community detection.}
+We project the bipartite graph onto the outlet dimension and apply the Louvain algorithm \cite{blondel2008fast} to detect communities of outlets connected by shared commenter bases.
+
+\paragraph{User polarization.}
+For each user, we compute a bias exposure rate as the fraction of commented articles labeled as biased.
+Users are categorized into low ($<0.4$), mixed ($0.4$--$0.6$), high ($0.6$--$0.8$), and very high ($>0.8$) bias exposure groups.
+We analyze outlet diversity (number of distinct outlets commented on) across these groups.
+
+\subsection{Predictive Modeling}
+
+To quantify the predictive power of interaction features, we train three classifiers on the 19-dimensional feature vector:
+\begin{itemize}
+    \item Logistic Regression (interpretable baseline)
+    \item Random Forest (non-linear, feature importance)
+    \item Gradient Boosting (ensemble, typically best performance)
+\end{itemize}
+
+All models use 5-fold stratified cross-validation.
+Features are standardized using z-score normalization.
+We report accuracy, macro-F1, and ROC AUC, comparing against a majority-class baseline (61.5\% accuracy).
+
+\subsection{Intra-Article Dynamics}
+
+For articles with at least 10 comments, we analyze temporal patterns within comment threads:
+\begin{itemize}
+    \item \textbf{Early vs.\ late karma}: Mean karma of the first vs.\ last quartile of comments.
+    \item \textbf{Karma drift}: The difference between late and early mean karma (negative drift indicates degradation).
+    \item \textbf{Karma slope}: Linear regression coefficient of karma on comment position.
+    \item \textbf{Reaction speed}: Time (hours) between the first and tenth comment.
+\end{itemize}
