@@ -25,8 +25,11 @@ plt.rcParams.update({
     "savefig.pad_inches": 0.05,
 })
 
-BLUE = "#4878CF"
-ORANGE = "#E8863B"
+# Elegant academic palette
+BLUE = "#2C5F8A"       # deep steel blue
+CORAL = "#C75B3F"      # muted terracotta
+TEAL = "#3A8A7A"       # sophisticated teal
+GOLD = "#C4963C"       # warm gold
 
 
 def fig_yearly_distribution():
@@ -43,20 +46,32 @@ def fig_yearly_distribution():
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
 
-    ax1.bar(yearly.index, yearly["count"], color=BLUE, alpha=0.7, label="Articles")
-    ax2.plot(yearly.index, yearly["bias_rate"] * 100, color=ORANGE, linewidth=2,
-             marker="o", markersize=4, label="Bias rate (%)")
+    years = yearly.index.astype(int)
+    ax1.bar(years, yearly["count"], color=BLUE, alpha=0.55, label="Articles", edgecolor="white", linewidth=0.5)
+    ax2.plot(years, yearly["bias_rate"] * 100, color=CORAL, linewidth=3,
+             marker="o", markersize=6, markerfacecolor=CORAL, markeredgecolor="white",
+             markeredgewidth=1.5, label="Bias rate (%)", zorder=10)
 
     ax1.set_xlabel("Year")
     ax1.set_ylabel("Number of articles", color=BLUE)
-    ax2.set_ylabel("Bias rate (%)", color=ORANGE)
-    ax2.set_ylim(40, 75)
+    ax2.set_ylabel("Bias rate (%)", color=CORAL)
+
+    # Dynamic y-limits for bias rate with padding
+    br_min = yearly["bias_rate"].min() * 100
+    br_max = yearly["bias_rate"].max() * 100
+    margin = (br_max - br_min) * 0.3
+    ax2.set_ylim(max(0, br_min - margin), br_max + margin)
+
     ax1.tick_params(axis="y", labelcolor=BLUE)
-    ax2.tick_params(axis="y", labelcolor=ORANGE)
+    ax2.tick_params(axis="y", labelcolor=CORAL)
+
+    # Integer years, rotated
+    ax1.set_xticks(years)
+    ax1.set_xticklabels([str(y) for y in years], rotation=45, ha="right", fontsize=7)
 
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right", fontsize=8)
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left", fontsize=8)
 
     plt.savefig(FIG_DIR / "yearly_distribution.pdf")
     plt.close()
@@ -77,11 +92,11 @@ def fig_karma_entropy():
 
     fig, ax = plt.subplots()
     bins = np.linspace(0, 5, 60)
-    ax.hist(non_biased, bins=bins, alpha=0.6, color=BLUE, density=True, label="Non-biased")
-    ax.hist(biased, bins=bins, alpha=0.6, color=ORANGE, density=True, label="Biased")
+    ax.hist(non_biased, bins=bins, alpha=0.55, color=BLUE, density=True, label="Non-biased", edgecolor="white", linewidth=0.3)
+    ax.hist(biased, bins=bins, alpha=0.55, color=CORAL, density=True, label="Biased", edgecolor="white", linewidth=0.3)
 
-    ax.axvline(non_biased.mean(), color=BLUE, linestyle="--", linewidth=1.5, alpha=0.8)
-    ax.axvline(biased.mean(), color=ORANGE, linestyle="--", linewidth=1.5, alpha=0.8)
+    ax.axvline(non_biased.mean(), color=BLUE, linestyle="--", linewidth=1.8, alpha=0.9)
+    ax.axvline(biased.mean(), color=CORAL, linestyle="--", linewidth=1.8, alpha=0.9)
 
     ax.set_xlabel("Karma entropy (bits)")
     ax.set_ylabel("Density")
@@ -116,8 +131,8 @@ def fig_sentiment_comparison():
     width = 0.35
 
     fig, ax = plt.subplots()
-    ax.bar(x - width / 2, nonbiased_pcts, width, color=BLUE, alpha=0.8, label="Non-biased")
-    ax.bar(x + width / 2, biased_pcts, width, color=ORANGE, alpha=0.8, label="Biased")
+    ax.bar(x - width / 2, nonbiased_pcts, width, color=BLUE, alpha=0.75, label="Non-biased", edgecolor="white", linewidth=0.5)
+    ax.bar(x + width / 2, biased_pcts, width, color=CORAL, alpha=0.75, label="Biased", edgecolor="white", linewidth=0.5)
 
     ax.set_ylabel("Percentage of comments (%)")
     ax.set_xticks(x)
@@ -145,7 +160,7 @@ def fig_user_diversity():
     outlets = user_pol["avg_outlets"].tolist()
     users = user_pol["n_users"].tolist()
 
-    colors = [BLUE, "#6BAF6B", ORANGE, "#CC4444"]
+    colors = [BLUE, TEAL, CORAL, GOLD]
     bars = ax.bar(range(len(categories)), outlets, color=colors, alpha=0.8, edgecolor="white")
 
     ax.set_ylabel("Mean outlet diversity")
@@ -181,7 +196,7 @@ def fig_outlet_communities():
 
     fig, ax = plt.subplots(figsize=(5.5, 6))
 
-    colors = {0: BLUE, 1: ORANGE}
+    colors = {0: BLUE, 1: CORAL}
     y_pos = 0
     y_positions = []
     y_labels = []
