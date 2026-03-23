@@ -1,91 +1,87 @@
-# Perceived Media Bias in User Interactions: Mining the Crowd for Disinformation Signals
+# Can the Crowd Detect Bias? Interaction Signals as Proxies for Media Bias
 
-This repository contains the experiment pipeline for our study on the relationship between media bias and user engagement patterns on [Meneame](https://www.meneame.net/), Spain's largest social news aggregator.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19164549.svg)](https://doi.org/10.5281/zenodo.19164549)
 
-## Overview
+This repository contains the experiment pipeline and analysis code for our study on whether user interaction patterns on social news platforms carry complementary information for automated media bias detection.
 
-We investigate whether user interaction patterns (votes, comments, karma, controversy) can serve as proxy signals for perceived media bias. The pipeline combines large-scale content analysis with engagement metadata, using a supervised DistilBERT classifier ([franfj/fdtd_media_bias_E](https://huggingface.co/franfj/fdtd_media_bias_E)) trained on the MBBMD dataset to label articles, and then correlates bias predictions with behavioral signals.
+## Key Findings
 
-### Research Questions
+- **Biased articles produce a distinctive behavioral signature** across four independent feature families: karma distributions (higher entropy, +4.6%, p < 10⁻²⁴), comment sentiment (more anger, p < 10⁻⁵), temporal dynamics (10.7% faster reactions, 20.6% shorter threads), and network structure.
+- **Interaction features alone achieve AUC 0.642** for bias classification using zero textual content, establishing baselines for future multimodal systems.
+- **Two media ecosystems** emerge from community detection, organized by media format rather than ideology.
+- **The signal is temporally robust**: consistent across 16 years of data (2006–2021).
 
-- **RQ1**: Can user interaction patterns on social news platforms serve as reliable proxy signals for perceived media bias?
-- **RQ2**: To what extent do user-generated bias signals correlate with article-level bias labels produced by automated classifiers?
-- **RQ3**: Do different bias levels elicit different engagement patterns across news sources, political topics, or time periods?
-- **RQ4**: Can user interaction signals be used as weak supervision for bias detection?
+## Dataset
+
+**14,995 articles** × **38 features** × **13.2M comments** × **96K users** × **2,868 outlets** × **17 years** (2005–2021)
+
+Available on Zenodo: [10.5281/zenodo.19164549](https://doi.org/10.5281/zenodo.19164549)
+
+## Pipeline
+
+The processing pipeline comprises 11 scripts, each producing self-contained intermediate outputs:
+
+| Step | Script | Description |
+|------|--------|-------------|
+| 1 | `01_ingest_dataset.py` | Convert raw JSON archive to Parquet (186K articles, 13.2M comments) |
+| 2 | `02_filter_subsample.py` | Filter and stratified subsample (→ 14,995 articles) |
+| 3 | `03_bias_labeling.py` | Automatic bias labeling with DistilBERT (MBBMD) |
+| 4 | `04_interaction_features.py` | Extract 38 interaction features per article |
+| 5 | `05_analysis.py` | Statistical analysis, correlations, predictive modeling |
+| 6 | `06_karma_divergence.py` | Advanced karma distribution analysis (entropy, Gini, KL) |
+| 7 | `07_user_media_graph.py` | Bipartite graph analysis, Louvain communities, user polarization |
+| 8 | `08_comment_sentiment.py` | Comment sentiment and emotion analysis (robertuito) |
+| 9 | `09_temporal_sentiment.py` | Intra-article dynamics and temporal trends |
+| 10 | `10_train_bias_model.py` | Cross-lingual bias model training (DistilBERT + BEADS + MBBMD) |
+| 11 | `11_relabel_with_new_model.py` | Re-label articles with new model + comparison |
+
+Run the full pipeline:
+```bash
+cd experiments/scripts
+bash run_pipeline.sh          # Steps 1-4
+python 05_analysis.py         # Step 5
+python 06_karma_divergence.py # Step 6
+# ... etc.
+```
 
 ## Repository Structure
 
 ```
-.
 ├── experiments/
-│   ├── scripts/             # Processing and analysis pipeline
-│   │   ├── 01_ingest_dataset.py       # Convert raw JSON to Parquet
-│   │   ├── 02_filter_subsample.py     # Filter and stratified subsample
-│   │   ├── 03_bias_labeling.py        # Automatic bias labeling (DistilBERT)
-│   │   ├── 04_interaction_features.py # Extract engagement features
-│   │   └── 05_analysis.py            # Statistical analysis and modeling
-│   ├── data/                # Intermediate data (gitignored, see below)
-│   └── results/             # Analysis output (CSV summaries)
-├── literature/              # Literature review notes
-├── notes/                   # Research notes
-└── PAPER_STATUS.md          # Current project status
+│   ├── scripts/          # 11 processing + analysis scripts
+│   ├── data/             # Intermediate data (gitignored; available on Zenodo)
+│   ├── results/          # Analysis outputs (CSV)
+│   └── models/           # Trained models (gitignored)
+├── PAPER_STATUS.md       # Project status and findings summary
+└── README.md             # This file
 ```
 
-## Running the Pipeline
+## Results Summary
 
-### Prerequisites
+| Experiment | Key Result |
+|-----------|------------|
+| Karma entropy | +4.6% for biased articles (p < 10⁻²⁴) |
+| Comment anger | +9.3% anger score (p < 4×10⁻⁵) |
+| Reaction speed | 10.7% faster (p < 10⁻⁴) |
+| Thread lifespan | 20.6% shorter (p < 10⁻⁴) |
+| Karma drift | 9.1% steeper degradation (p < 10⁻¹²) |
+| Classification (AUC) | 0.642 (Gradient Boosting, no text) |
+| User communities | 2 outlet clusters (format-based, not ideology) |
 
-```bash
-pip install pandas pyarrow numpy torch transformers scipy scikit-learn
+## Citation
+
+```bibtex
+@article{rodrigo2026crowd,
+  title={Can the Crowd Detect Bias? Interaction Signals as Proxies
+         for Media Bias on Social News Platforms},
+  author={Rodrigo-Gin{\'e}s, Francisco-Javier and
+          Carrillo-de-Albornoz, Jorge and Plaza, Laura},
+  journal={Procesamiento del Lenguaje Natural},
+  year={2026}
+}
 ```
-
-### Step-by-step
-
-1. **Ingest the raw Meneame dataset** (JSON files to Parquet):
-   ```bash
-   python experiments/scripts/01_ingest_dataset.py \
-       --input-dir /path/to/meneame/dataset/_test/ \
-       --output-dir experiments/data/
-   ```
-
-2. **Filter and subsample** (~15K articles from news outlets, stratified by year):
-   ```bash
-   python experiments/scripts/02_filter_subsample.py --data-dir experiments/data/
-   ```
-
-3. **Automatic bias labeling** using the [franfj/fdtd_media_bias_E](https://huggingface.co/franfj/fdtd_media_bias_E) model:
-   ```bash
-   python experiments/scripts/03_bias_labeling.py --data-dir experiments/data/ --device mps
-   ```
-   Supports `cpu`, `cuda`, or `mps` (Apple Silicon).
-
-4. **Extract interaction features** (comment karma, polarization, engagement depth, etc.):
-   ```bash
-   python experiments/scripts/04_interaction_features.py --data-dir experiments/data/
-   ```
-
-5. **Run analysis** (statistical tests, correlations, outlet/topic/temporal analysis, predictive modeling):
-   ```bash
-   python experiments/scripts/05_analysis.py --data-dir experiments/data/
-   ```
-   Results are saved as CSV files in `experiments/results/`.
-
-## Data Requirements
-
-The raw dataset is **not included** in this repository due to its size (~186K JSON files, ~2 GB compressed).
-
-The Meneame dataset consists of scraped news submissions from meneame.net (approximately 2008-2022). Each JSON file contains:
-- Article metadata (title, text, URL, media outlet, score, tags, timestamp)
-- User comments (text, author, karma, timestamp)
-
-To reproduce the experiments, place the raw JSON files in a directory and point `01_ingest_dataset.py` to it.
-
-## Authors
-
-- **Francisco-Javier Rodrigo-Gines** - UNED, NLP & IR Group (frodrigo@invi.uned.es)
-- **Jorge Carrillo-de-Albornoz** - UNED, NLP & IR Group
-- **Laura Plaza** - UNED, NLP & IR Group
 
 ## License
 
-This code is provided for research purposes. Please cite our paper if you use this pipeline.
+- **Code**: MIT
+- **Dataset**: [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
