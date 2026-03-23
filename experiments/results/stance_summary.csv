@@ -1,0 +1,9 @@
+metric,value
+disagree_biased,0.7856678882814944
+disagree_nonbiased,0.7429819400757551
+disagree_p,3.3029261087366123e-12
+agree_biased,0.1860771058475133
+agree_nonbiased,0.22389460550546647
+agree_p,1.847138815839151e-11
+pct_disagree_biased,0.9068
+pct_disagree_nonbiased,0.8564
