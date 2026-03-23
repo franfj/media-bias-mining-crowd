@@ -68,19 +68,6 @@ python 06_karma_divergence.py # Step 6
 | Classification (AUC) | 0.642 (Gradient Boosting, no text) |
 | User communities | 2 outlet clusters (format-based, not ideology) |
 
-## Citation
-
-```bibtex
-@article{rodrigo2026crowd,
-  title={Can the Crowd Detect Bias? Interaction Signals as Proxies
-         for Media Bias on Social News Platforms},
-  author={Rodrigo-Gin{\'e}s, Francisco-Javier and
-          Carrillo-de-Albornoz, Jorge and Plaza, Laura},
-  journal={Procesamiento del Lenguaje Natural},
-  year={2026}
-}
-```
-
 ## License
 
 - **Code**: MIT
